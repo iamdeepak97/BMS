@@ -1,0 +1,130 @@
+{% extends 'battery_app/base.html' %}
+
+{% block title %}Battery Simulation{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-lg border-0 bg-dark text-light">
+        <div class="card-header bg-gradient text-center" 
+             style="background: linear-gradient(135deg, #0077ff, #00d9ff);">
+            <h3 class="mb-0 text-white">🔋 Battery Cell Simulation</h3>
+        </div>
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Cell Selection -->
+                <h4 class="text-info mb-3">Cell Selection</h4>
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ cell_form.cell_type.id_for_label }}" class="form-label fw-semibold">Cell Type</label>
+                        {{ cell_form.cell_type }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ cell_form.form_factor.id_for_label }}" class="form-label fw-semibold">Form Factor</label>
+                        {{ cell_form.form_factor }}
+                    </div>
+                </div>
+
+                <!-- Cell Specs -->
+                <div class="p-3 mb-4 rounded border bg-black" style="border-color: #222;">
+                    <h5 class="fw-bold text-info mb-3">Cell Specifications</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Length:</strong> <span id="cell-length" class="text-primary">--</span> mm</p>
+                            <p><strong>Diameter:</strong> <span id="cell-diameter" class="text-primary">--</span> mm</p>
+                            <p><strong>Volume:</strong> <span id="cell-volume" class="text-primary">--</span> cm³</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Energy Density:</strong> <span id="energy-density" class="text-primary">--</span> Wh/kg</p>
+                            <p><strong>Nominal Voltage:</strong> <span id="nominal-voltage" class="text-primary">--</span> V</p>
+                            <p><strong>Capacity:</strong> <span id="capacity" class="text-primary">--</span> mAh</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Parameters -->
+                <h4 class="text-info mb-3">Simulation Parameters</h4>
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ simulation_form.load_resistance.id_for_label }}" class="form-label fw-semibold" >Load Resistance (Ω)</label>
+                        {{ simulation_form.load_resistance }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ simulation_form.initial_soc.id_for_label }}" class="form-label fw-semibold">Initial SOC (%)</label>
+                        {{ simulation_form.initial_soc }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ simulation_form.temperature.id_for_label }}" class="form-label fw-semibold">Ambient Temp (°C)</label>
+                        {{ simulation_form.temperature }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ simulation_form.simulation_duration.id_for_label }}" class="form-label fw-semibold">Duration (min)</label>
+                        {{ simulation_form.simulation_duration }}
+                    </div>
+                </div>
+
+                <!-- Run Button -->
+                <div class="text-center">
+                    <button type="submit" class="btn btn-lg px-5 shadow"
+                        style="background: linear-gradient(135deg, #00d9ff, #0077ff); border: none; color: white; font-weight: 600;">
+                        ▶ Run Simulation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Extra Dark Theme Styles -->
+<style>
+body {
+    background: linear-gradient(135deg, #0b0f17, #111927, #0a0d14);
+    color: #ddd;
+}
+label {
+    color: #ccc;
+}
+input, select {
+    background: #000000ff !important;
+    color: #ffffffff !important;
+    border: 1px solid #e4e3e3ff !important;
+}
+input:focus, select:focus {
+    border-color: #00d9ff !important;
+    box-shadow: 0 0 8px rgba(0,217,255,0.4) !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cellTypeSelect = document.querySelector('#{{ cell_form.cell_type.id_for_label }}');
+    const formFactorSelect = document.querySelector('#{{ cell_form.form_factor.id_for_label }}');
+
+    function updateCellSpecs() {
+        const cellType = cellTypeSelect.value;
+        const formFactor = formFactorSelect.value;
+
+        fetch(`/api/cell-specs/?cell_type=${cellType}&form_factor=${formFactor}`)
+            .then(response => response.ok ? response.json() : null)
+            .then(data => {
+                if (data) {
+                    document.getElementById('cell-length').textContent = data.length || '--';
+                    document.getElementById('cell-diameter').textContent = data.diameter || '--';
+                    document.getElementById('cell-volume').textContent = data.volume || '--';
+                    document.getElementById('energy-density').textContent = data.energy_density || '--';
+                    document.getElementById('nominal-voltage').textContent = data.nominal_voltage || '--';
+                    document.getElementById('capacity').textContent = data.capacity || '--';
+                }
+            })
+            .catch(error => console.error('Error fetching cell specifications:', error));
+    }
+
+    updateCellSpecs();
+    cellTypeSelect.addEventListener('change', updateCellSpecs);
+    formFactorSelect.addEventListener('change', updateCellSpecs);
+});
+</script>
+{% endblock %}
